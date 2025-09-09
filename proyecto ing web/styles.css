@@ -1,0 +1,98 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f8fafc;
+    color: #111;
+    font-size: 16px;
+    /* Escalable */
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #2563eb;
+    color: white;
+}
+
+.controls button {
+    margin-left: 5px;
+}
+
+main {
+    padding: 1rem;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    margin: 0.5rem 0;
+}
+
+.table-container {
+    max-height: 300px;
+    overflow: auto;
+    border: 1px solid #ccc;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+
+table th {
+    background: #e2e8f0;
+}
+
+.chart-wrapper {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 1rem;
+}
+
+
+/* Botones accesibles */
+
+button {
+    padding: 10px 15px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+    background: #3b82f6;
+    color: white;
+}
+
+button:hover {
+    background: #2563eb;
+}
+
+button:focus,
+select:focus,
+textarea:focus {
+    outline: 3px solid #f59e0b;
+}
+
+
+/* Dark mode */
+
+.dark {
+    background: #0f172a;
+    color: #f1f5f9;
+}
+
+.dark header {
+    background: #1e293b;
+}
+
+.dark table th {
+    background: #334155;
+}

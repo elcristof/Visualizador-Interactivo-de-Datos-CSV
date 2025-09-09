@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mini BI Tool Accesible</title>
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Librerías por CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <h1 id="app-title">Copia de Excel</h1>
+        <div class="controls">
+            <button id="increase-font" aria-label="Aumentar tamaño de letra">🔎A+</button>
+            <button id="decrease-font" aria-label="Disminuir tamaño de letra">🔎A-</button>
+            <button id="darkmode-toggle" aria-label="Activar o desactivar modo oscuro">🌙</button>
+        </div>
+    </header>
+
+    <main role="main">
+        <!-- Mensajes accesibles -->
+        <div id="status" role="status" aria-live="polite"></div>
+
+        <!-- Área CSV -->
+        <section aria-labelledby="csv-section">
+            <h2 id="csv-section">1) Pegar o importar CSV</h2>
+            <input type="file" id="csv-file" accept=".csv,text/csv" aria-label="Seleccionar archivo CSV">
+            <textarea id="csv-input" placeholder="Nombre,Edad\nMaria,30\nJuan,25" aria-label="Área para pegar CSV"></textarea>
+            <button id="parse-btn" aria-label="Parsear CSV">Parsear</button>
+            <div id="warnings" role="alert"></div>
+        </section>
+
+        <!-- Tabla -->
+        <section aria-labelledby="table-section">
+            <h2 id="table-section">2) Tabla interactiva</h2>
+            <div class="table-container" tabindex="0" aria-label="Tabla de datos generada del CSV">
+                <table id="data-table"></table>
+            </div>
+        </section>
+
+        <!-- Gráfica -->
+        <section aria-labelledby="chart-section">
+            <h2 id="chart-section">3) Configurar gráfica</h2>
+            <label for="x-column">Eje X:</label>
+            <select id="x-column"></select>
+
+            <label for="y-column">Eje Y:</label>
+            <select id="y-column"></select>
+
+            <label for="chart-type">Tipo:</label>
+            <select id="chart-type">
+                <option value="bar">Barras</option>
+                <option value="line">Líneas</option>
+            </select>
+
+            <label for="orientation">Orientación:</label>
+            <select id="orientation">
+                <option value="vertical">Vertical</option>
+                <option value="horizontal">Horizontal</option>
+            </select>
+
+            <button id="export-btn" aria-label="Exportar gráfica como imagen PNG">💾 Exportar PNG</button>
+            <div class="chart-wrapper">
+                <canvas id="chart" role="img" aria-label="Gráfica generada a partir de los datos cargados"></canvas>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
