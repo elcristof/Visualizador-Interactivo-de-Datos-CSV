@@ -14,7 +14,7 @@ function parseCSV(text) {
     const result = Papa.parse(text.trim(), { skipEmptyLines: true });
     if (result.errors.length) {
         document.getElementById("warnings").innerText =
-            "⚠️ Error en CSV: " + result.errors[0].message;
+            " Error en CSV: " + result.errors[0].message;
         return;
     }
     headers = result.data[0];
@@ -124,4 +124,5 @@ document.getElementById("decrease-font").onclick = () => {
     fontSize = Math.max(12, fontSize - 2);
     document.body.style.fontSize = fontSize + "px";
     setStatus("Tamaño de letra disminuido");
+
 };
