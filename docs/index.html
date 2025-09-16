@@ -1,90 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mini BI Tool Accesible</title>
-    <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mini BI Tool Accesible</title>
+  <link rel="stylesheet" href="styles.css"/>
 
-    <!-- Librerías por CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-    <script src="script.js" defer></script>
+  <!-- Librerías por CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
-    <header>
-        <h1 id="app-title">Copia de Excel</h1>
-        <div class="controls" aria-label="Controles de accesibilidad">
-            <button id="increase-font" aria-label="Aumentar tamaño de letra">A+</button>
-            <button id="decrease-font" aria-label="Disminuir tamaño de letra">A-</button>
-            <button id="darkmode-toggle" aria-label="Activar o desactivar modo oscuro" aria-pressed="false">Modo
-                oscuro</button>
+  <header>
+    <h1 id="app-title">Copia de Excel</h1>
+    <div class="controls">
+      <button id="increase-font" aria-label="Aumentar tamaño de letra">A+</button>
+      <button id="decrease-font" aria-label="Disminuir tamaño de letra">A-</button>
+      <button id="darkmode-toggle" aria-label="Activar o desactivar modo oscuro">🌓</button>
+    </div>
+  </header>
+
+  <main role="main">
+    <!-- Mensajes accesibles -->
+    <div id="status" role="status" aria-live="polite"></div>
+
+    <!-- Área CSV -->
+    <section aria-labelledby="csv-section">
+      <h2 id="csv-section">1) Pegar o importar CSV</h2>
+
+      <div class="grid2">
+        <div>
+          <input type="file" id="csv-file" accept=".csv,text/csv" aria-label="Seleccionar archivo CSV">
+          <textarea id="csv-input" placeholder="Nombre,Edad&#10;Maria,30&#10;Juan,25" aria-label="Área para pegar CSV"></textarea>
+          <button id="parse-btn" aria-label="Parsear CSV">Parsear</button>
+          <div id="warnings" role="alert"></div>
         </div>
-    </header>
 
-    <main role="main">
-        <!-- Mensajes accesibles -->
-        <div id="status" role="status" aria-live="polite"></div>
+        <div>
+          <label for="global-filter">Filtro rápido (todas las columnas):</label>
+          <input type="search" id="global-filter" placeholder="Escribe para filtrar..." aria-label="Buscar en toda la tabla"/>
+          <button id="clear-selection" class="secondary" aria-label="Limpiar selección de filas">Limpiar selección</button>
+          <small class="hint">Tip: haz clic sobre una fila para seleccionarla. KPIs y gráfica usan la selección; si no hay selección, usan lo filtrado.</small>
+        </div>
+      </div>
+    </section>
 
-        <!-- Área CSV -->
-        <section aria-labelledby="csv-section">
-            <h2 id="csv-section">1) Pegar o importar CSV</h2>
-            <input type="file" id="csv-file" accept=".csv,text/csv" aria-label="Seleccionar archivo CSV">
-            <textarea id="csv-input" placeholder="Nombre,Edad&#10;Maria,30&#10;Juan,25"
-                aria-label="Área para pegar CSV"></textarea>
-            <button id="parse-btn" aria-label="Parsear CSV">Parsear</button>
-            <div id="warnings" role="alert"></div>
-        </section>
+    <!-- KPIs -->
+    <section aria-labelledby="kpi-section">
+      <h2 id="kpi-section">2) Panel de estadísticas clave</h2>
 
-        <!-- Tabla -->
-        <section aria-labelledby="table-section">
-            <h2 id="table-section">2) Tabla interactiva</h2>
-            <p class="table-instructions">Puedes editar los valores directamente en la tabla para actualizar la
-                gráfica y las estadísticas en tiempo real.</p>
-            <div class="table-container" tabindex="0" aria-label="Tabla de datos generada del CSV">
-                <table id="data-table"></table>
-            </div>
-        </section>
+      <div class="kpi-controls">
+        <label for="metric-column">Columna métrica:</label>
+        <select id="metric-column" aria-label="Selecciona la columna numérica para KPIs"></select>
+      </div>
 
-        <!-- Panel de estadísticas -->
-        <section aria-labelledby="dashboard-section">
-            <h2 id="dashboard-section">3) Panel de estadísticas clave</h2>
-            <div id="dashboard" class="stats-grid" role="region"
-                aria-label="Panel con métricas calculadas de los datos cargados" aria-live="polite">
-                <p class="stat-message">Carga un CSV para ver un resumen de los datos.</p>
-            </div>
-        </section>
+      <div class="kpi-grid" role="group" aria-label="Tarjetas de KPIs">
+        <article class="kpi-card" aria-live="polite">
+          <h3>Filas (vista)</h3>
+          <p id="stat-rows">0</p>
+          <small id="stat-rows-detail">0 seleccionadas</small>
+        </article>
+        <article class="kpi-card">
+          <h3>Columnas</h3>
+          <p id="stat-cols">0</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Suma</h3>
+          <p id="stat-sum">0</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Promedio</h3>
+          <p id="stat-avg">0</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Mínimo</h3>
+          <p id="stat-min">0</p>
+        </article>
+        <article class="kpi-card">
+          <h3>Máximo</h3>
+          <p id="stat-max">0</p>
+        </article>
+      </div>
+    </section>
 
-        <!-- Gráfica -->
-        <section aria-labelledby="chart-section">
-            <h2 id="chart-section">4) Configurar gráfica</h2>
-            <label for="x-column">Eje X:</label>
-            <select id="x-column"></select>
+    <!-- Tabla -->
+    <section aria-labelledby="table-section">
+      <h2 id="table-section">3) Tabla interactiva</h2>
+      <div class="table-container" tabindex="0" aria-label="Tabla de datos generada del CSV">
+        <table id="data-table"></table>
+      </div>
+    </section>
 
-            <label for="y-column">Eje Y:</label>
-            <select id="y-column"></select>
+    <!-- Gráfica -->
+    <section aria-labelledby="chart-section">
+      <h2 id="chart-section">4) Configurar gráfica</h2>
 
-            <label for="chart-type">Tipo:</label>
-            <select id="chart-type">
-                <option value="bar">Barras</option>
-                <option value="line">Líneas</option>
-            </select>
+      <div class="grid4">
+        <div>
+          <label for="x-column">Eje X:</label>
+          <select id="x-column"></select>
+        </div>
+        <div>
+          <label for="y-column">Eje Y:</label>
+          <select id="y-column"></select>
+        </div>
+        <div>
+          <label for="chart-type">Tipo:</label>
+          <select id="chart-type">
+            <option value="bar">Barras</option>
+            <option value="line">Líneas</option>
+          </select>
+        </div>
+        <div>
+          <label for="orientation">Orientación:</label>
+          <select id="orientation">
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+          </select>
+        </div>
+      </div>
 
-            <label for="orientation">Orientación:</label>
-            <select id="orientation">
-                <option value="vertical">Vertical</option>
-                <option value="horizontal">Horizontal</option>
-            </select>
+      <div class="actions">
+        <button id="export-btn" aria-label="Exportar gráfica como imagen PNG">Exportar PNG</button>
+      </div>
 
-            <button id="export-btn" aria-label="Exportar gráfica como imagen PNG">Exportar PNG</button>
-            <div class="chart-wrapper">
-                <canvas id="chart" role="img" aria-label="Gráfica generada a partir de los datos cargados"></canvas>
-            </div>
-        </section>
-    </main>
+      <div class="chart-wrapper">
+        <canvas id="chart" role="img" aria-label="Gráfica generada a partir de los datos cargados"></canvas>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
-
 </html>
