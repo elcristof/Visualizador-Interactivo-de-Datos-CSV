@@ -97,6 +97,3 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 - **Selects** (`#x-column`, `#y-column`, `#chart-type`, `#orientation`): `onchange` → `updateChart()`.
 - **Exportar**: `#export-btn.onclick` → `exportChart()`.
 - **Modo oscuro**: `#darkmode-toggle.onclick` → alterna `.dark`.
-- **Tipografía**:
-  - `#increase-font.onclick` (+2 px, mínimo 12 px)
-  - `#decrease-font.onclick` (−2 px, mínimo 12 px)
