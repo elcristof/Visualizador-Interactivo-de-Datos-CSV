@@ -20,14 +20,14 @@
 
 * Mensajes de error o advertencia
 
-## Tabla interactiva
+### Tabla interactiva
 - Se renderiza en `<table id="data-table">` con cabecera a partir de `headers`.
 - Contenedor con scroll (`.table-container`) y borde.
 - Accesible con `tabindex="0"` y `aria-label`.
 
 ---
 
-## Gráficas
+### Gráficas
 - Lienzo: `<canvas id="chart">` dentro de `.chart-wrapper`.
 - Tipos:
   - **Barras** (`bar`)
@@ -44,13 +44,13 @@
 
 ---
 
-## Exportar imagen
+### Exportar imagen
 - Botón ** Exportar PNG** usa **html2canvas** sobre `.chart-wrapper`.
 - Descarga **`chart.png`** con la visualización actual.
 
 ---
 
-## Accesibilidad
+### Accesibilidad
 - **`role="status"` + `aria-live="polite"`** para mensajes no intrusivos: `#status`.
 - Botones con **`aria-label`** descriptivos.
 - **Foco visible** en botones/select/textarea (`outline` ámbar).
@@ -58,13 +58,13 @@
 
 ---
 
-## Controles de interfaz
+### Controles de interfaz
 - **A+** / **A-**: ajustan fuente global (`fontSize` → `document.body.style.fontSize`).
 - alterna **modo oscuro** añadiendo/removiendo la clase `.dark` en `<body>`.
 
 ---
 
-## API interna (funciones)
+### API interna (funciones)
 
 ### `setStatus(msg: string)`
 Escribe un mensaje accesible en `#status` para feedback.
@@ -91,7 +91,7 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
 ---
 
-## Eventos registrados
+### Eventos registrados
 - **Parsear**: `#parse-btn.onclick` → `parseCSV(...)`.
 - **Archivo CSV**: `#csv-file.onchange` → `FileReader` → `parseCSV(...)`.
 - **Selects** (`#x-column`, `#y-column`, `#chart-type`, `#orientation`): `onchange` → `updateChart()`.
@@ -103,7 +103,7 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
 ---
 
-## Personalización
+### Personalización
 - **Colores** de gráfica: edita `backgroundColor` y `borderColor` del dataset en `updateChart()`.
 - **Ancho máximo** de la gráfica: cambia `max-width` en `.chart-wrapper`.
 - **Tema**: ajusta variables en `styles.css` (clases base y `.dark`).
@@ -111,7 +111,7 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
 ---
 
-## Limitaciones y notas
+### Limitaciones y notas
 - **Valores no numéricos** en la columna **Y** se convierten a `0` (puede afectar la visualización).
 - **CSV grande**: tablas con miles de filas pueden ser lentas sin paginación.
 - **Seguridad**: `FileReader` no sube archivos a ningún servidor; se procesa **localmente** en el navegador.
@@ -119,7 +119,7 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
 ---
 
-## Solución de problemas
+### Solución de problemas
 - **“Error en CSV”**: revisa comillas, filas vacías y encabezados; usa el ejemplo de formato.
 - **Eje Y vacío / ceros**: confirma que la columna **Y** tiene valores numéricos (sin símbolos).
 - **No descarga PNG**: verifica que el navegador permita descargas iniciadas por scripts (prueba en otra pestaña o desactiva bloqueadores).
@@ -127,7 +127,7 @@ Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
 ---
 
-## Ideas de mejora
+### Ideas de mejora
 - Paginación, orden y filtros en la tabla.
 - Detección automática de columnas numéricas y categóricas.
 - Soporte para múltiples datasets/series.
