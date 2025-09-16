@@ -1,272 +1,341 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background: #f8fafc;
-    color: #111827;
-    font-size: 16px;
-    transition: background 0.3s ease, color 0.3s ease;
+let csvData = [];
+let headers = [];
+let chart;
+let darkMode = false;
+let fontSize = 16;
+
+// estado de UI
+let globalFilter = "";
+let selectedRowIndexes = new Set();
+let sortState = { index: null, asc: true };
+
+// Mostrar mensajes accesibles
+function setStatus(msg) {
+  document.getElementById("status").innerText = msg;
 }
 
-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: #2563eb;
-    color: white;
+// ===== CSV =====
+function parseCSV(text) {
+  const result = Papa.parse(text.trim(), { skipEmptyLines: true });
+  if (result.errors.length) {
+    document.getElementById("warnings").innerText = "Error en CSV: " + result.errors[0].message;
+    return;
+  }
+  headers = result.data[0];
+  csvData = result.data.slice(1);
+  selectedRowIndexes.clear();
+  sortState = { index: null, asc: true };
+  setStatus("CSV procesado correctamente");
+  updateAll();
 }
 
-.controls button {
-    margin-left: 5px;
+// ===== Helpers de datos =====
+function applyGlobalFilter(rows, term) {
+  if (!term) return rows;
+  const needle = term.toLowerCase();
+  return rows.filter(r =>
+    r.some(c => String(c ?? "").toLowerCase().includes(needle))
+  );
 }
 
-main {
-    padding: 1rem;
-    max-width: 1100px;
-    margin: 0 auto;
+function applySort(rows) {
+  if (sortState.index == null) return rows;
+  const idx = sortState.index;
+  const asc = sortState.asc;
+  const cloned = [...rows];
+  cloned.sort((a, b) => {
+    const av = a[idx];
+    const bv = b[idx];
+    const an = Number(av);
+    const bn = Number(bv);
+    const bothNumeric = !Number.isNaN(an) && !Number.isNaN(bn);
+    let cmp;
+    if (bothNumeric) cmp = an - bn;
+    else cmp = String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
+    return asc ? cmp : -cmp;
+  });
+  return cloned;
 }
 
-textarea {
-    width: 100%;
-    height: 120px;
-    margin: 0.5rem 0;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border: 1px solid #cbd5f5;
-    resize: vertical;
+function numericSeries(rows, colIndex) {
+  return rows
+    .map(r => Number(r[colIndex]))
+    .filter(v => Number.isFinite(v));
 }
 
-.table-instructions {
-    margin: 0.5rem 0 0;
-    color: #475569;
+function computeStats(rows, metricIndex) {
+  const nums = numericSeries(rows, metricIndex);
+  const n = nums.length;
+  if (n === 0) return { sum: 0, avg: 0, min: 0, max: 0, count: 0 };
+  const sum = nums.reduce((a, b) => a + b, 0);
+  const avg = sum / n;
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  return { sum, avg, min, max, count: n };
 }
 
-.table-container {
-    max-height: 300px;
-    overflow: auto;
-    border: 1px solid #cbd5f5;
-    border-radius: 10px;
-    margin-top: 0.75rem;
-    background-color: #fff;
+function getFilteredData() {
+  const filtered = applyGlobalFilter(csvData, globalFilter);
+  return applySort(filtered);
 }
 
-.table-container:focus {
-    outline: 3px solid #f59e0b;
-    outline-offset: 4px;
+function getWorkingData() {
+  const filtered = getFilteredData();
+  if (selectedRowIndexes.size === 0) return filtered;
+  // map selection (which stores original indices) to current filtered order
+  return filtered.filter((row) => {
+    const originalIndex = csvData.indexOf(row);
+    return selectedRowIndexes.has(originalIndex);
+  });
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 400px;
+// ===== Render: Tabla =====
+function renderTable() {
+  const table = document.getElementById("data-table");
+  table.innerHTML = "";
+  if (!headers.length) return;
+
+  const filtered = getFilteredData();
+
+  // header con sort
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+  headers.forEach((h, i) => {
+    const th = document.createElement("th");
+    const btn = document.createElement("button");
+    btn.className = "th-sort";
+    btn.type = "button";
+    btn.title = "Ordenar";
+    btn.setAttribute("aria-label", `Ordenar por ${h}`);
+    btn.textContent = h;
+
+    const sortIcon = document.createElement("span");
+    sortIcon.className = "sort-icon";
+    if (sortState.index === i) sortIcon.textContent = sortState.asc ? " ▲" : " ▼";
+    btn.appendChild(sortIcon);
+
+    btn.onclick = () => {
+      if (sortState.index === i) sortState.asc = !sortState.asc;
+      else { sortState.index = i; sortState.asc = true; }
+      renderTable();
+      updateKPIs();
+      updateChart();
+    };
+    th.appendChild(btn);
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  // body
+  const tbody = document.createElement("tbody");
+  filtered.forEach((row, idxFiltered) => {
+    const tr = document.createElement("tr");
+
+    const originalIndex = csvData.indexOf(row);
+    const selected = selectedRowIndexes.has(originalIndex);
+    if (selected) tr.classList.add("selected");
+
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "row");
+    tr.title = "Click o Enter para (des)seleccionar";
+
+    tr.onclick = () => {
+      toggleRowSelection(originalIndex);
+      tr.classList.toggle("selected");
+      updateKPIs();
+      updateChart();
+    };
+    tr.onkeydown = (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        tr.click();
+      }
+    };
+
+    row.forEach((c) => {
+      const td = document.createElement("td");
+      td.textContent = c;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  // detalle de filas
+  const statRowsDetail = document.getElementById("stat-rows-detail");
+  statRowsDetail.textContent = `${selectedRowIndexes.size} seleccionadas`;
 }
 
-table caption {
-    text-align: left;
-    padding: 0.5rem;
-    font-weight: bold;
+function toggleRowSelection(originalIndex) {
+  if (selectedRowIndexes.has(originalIndex)) selectedRowIndexes.delete(originalIndex);
+  else selectedRowIndexes.add(originalIndex);
 }
 
-table th,
-table td {
-    border: 1px solid #e2e8f0;
-    padding: 0.6rem;
-    text-align: left;
+// ===== Selectores (X, Y, métrica) =====
+function populateSelectors() {
+  const xSel = document.getElementById("x-column");
+  const ySel = document.getElementById("y-column");
+  const mSel = document.getElementById("metric-column");
+
+  const options = headers.map(h => `<option value="${h}">${h}</option>`).join("");
+  xSel.innerHTML = options;
+  ySel.innerHTML = options;
+  mSel.innerHTML = options;
+
+  // valores por defecto prácticos
+  xSel.selectedIndex = 0;
+  ySel.selectedIndex = Math.min(1, headers.length - 1);
+  mSel.selectedIndex = ySel.selectedIndex;
 }
 
-table th {
-    background: #e2e8f0;
-    position: sticky;
-    top: 0;
-    z-index: 1;
+// ===== KPIs =====
+function updateKPIs() {
+  if (!headers.length) return;
+  const mColName = document.getElementById("metric-column").value || headers[0];
+  const mIdx = headers.indexOf(mColName);
+
+  const visible = getFilteredData();
+  const working = getWorkingData();
+
+  // básicos
+  document.getElementById("stat-rows").textContent = String(working.length);
+  document.getElementById("stat-cols").textContent = String(headers.length);
+
+  // métricos
+  const s = computeStats(working, mIdx);
+  document.getElementById("stat-sum").textContent = numberFmt(s.sum);
+  document.getElementById("stat-avg").textContent = numberFmt(s.avg);
+  document.getElementById("stat-min").textContent = numberFmt(s.min);
+  document.getElementById("stat-max").textContent = numberFmt(s.max);
+
+  // detalle selección
+  document.getElementById("stat-rows-detail").textContent =
+    `${selectedRowIndexes.size} seleccionadas (de ${visible.length} visibles)`;
 }
 
-table td[contenteditable="true"] {
-    background-color: #ffffff;
-    min-width: 120px;
+function numberFmt(n) {
+  if (!Number.isFinite(n)) return "0";
+  return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 2 }).format(n);
 }
 
-table td[contenteditable="true"]:focus {
-    outline: 3px solid #f59e0b;
-    outline-offset: -3px;
-}
+// ===== Chart =====
+function updateChart() {
+  if (!headers.length) return;
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
+  const xCol = document.getElementById("x-column").value || headers[0];
+  const yCol = document.getElementById("y-column").value || headers[1] || headers[0];
+  const type = document.getElementById("chart-type").value;
+  const orientation = document.getElementById("orientation").value;
 
-.stat-card {
-    background: #e2e8f0;
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
+  const rows = getWorkingData();
+  const labels = rows.map(r => r[headers.indexOf(xCol)]);
+  const values = rows.map(r => Number(r[headers.indexOf(yCol)]) || 0);
 
-.stat-card h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: #0f172a;
-}
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (chart) chart.destroy();
 
-.stat-card p {
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: #1e293b;
-}
-
-.stat-card:focus-within,
-.stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 24px rgba(30, 64, 175, 0.18);
-}
-
-.stat-message {
-    grid-column: 1 / -1;
-    padding: 1rem;
-    background: #fff7ed;
-    border: 1px solid #fbbf24;
-    border-radius: 12px;
-    color: #92400e;
-    font-weight: 600;
-}
-
-.chart-wrapper {
-    width: 100%;
-    max-width: 700px;
-    margin-top: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
-}
-
-/* Botones accesibles */
-button,
-select {
-    padding: 10px 15px;
-    font-size: 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    border: none;
-    background: #3b82f6;
-    color: white;
-    margin-top: 0.5rem;
-}
-
-button:hover,
-select:hover {
-    background: #2563eb;
-}
-
-button:focus,
-select:focus,
-textarea:focus {
-    outline: 3px solid #f59e0b;
-}
-
-label {
-    display: block;
-    margin-top: 1rem;
-    color: #0f172a;
-    font-weight: 600;
-}
-
-select {
-    background: #1d4ed8;
-}
-
-.dark {
-    background: #0f172a;
-    color: #f1f5f9;
-}
-
-.dark header {
-    background: #1e293b;
-}
-
-.dark textarea {
-    background: #1e293b;
-    border-color: #334155;
-    color: #f1f5f9;
-}
-
-.dark .table-container {
-    background-color: #111827;
-    border-color: #1e293b;
-}
-
-.dark table th,
-.dark table td {
-    border-color: #1e293b;
-}
-
-.dark table th {
-    background: #1f2937;
-}
-
-.dark table td[contenteditable="true"] {
-    background-color: #111827;
-    color: #f1f5f9;
-}
-
-.dark .chart-wrapper {
-    background: #111827;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.4);
-}
-
-.dark .stat-card {
-    background: #1e293b;
-    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.5);
-}
-
-.dark .stat-card h3 {
-    color: #e2e8f0;
-}
-
-.dark .stat-card p {
-    color: #f8fafc;
-}
-
-.dark .stat-message {
-    background: #451a03;
-    border-color: #f97316;
-    color: #fdba74;
-}
-
-.dark button,
-.dark select {
-    background: #334155;
-    color: #f8fafc;
-}
-
-.dark button:hover,
-.dark select:hover {
-    background: #1d4ed8;
-}
-
-@media (max-width: 600px) {
-    header {
-        flex-direction: column;
-        gap: 0.75rem;
+  chart = new Chart(ctx, {
+    type: type === "line" ? "line" : "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: yCol,
+        data: values,
+        backgroundColor: "#3b82f6",
+        borderColor: "#1d4ed8",
+        borderWidth: 1
+      }]
+    },
+    options: {
+      indexAxis: orientation === "horizontal" ? "y" : "x",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true },
+        tooltip: { mode: "index", intersect: false }
+      },
+      scales: {
+        x: { ticks: { autoSkip: true, maxTicksLimit: 12 } },
+        y: { beginAtZero: true }
+      }
     }
+  });
+}
 
-    .controls {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-    }
+// ===== Export =====
+function exportChart() {
+  html2canvas(document.querySelector(".chart-wrapper")).then(canvas => {
+    const link = document.createElement("a");
+    link.download = "chart.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+  setStatus("Gráfica exportada como imagen");
+}
 
-    button,
-    select {
-        width: 100%;
-    }
+// ===== Eventos =====
+document.getElementById("parse-btn").onclick = () => {
+  const text = document.getElementById("csv-input").value;
+  parseCSV(text);
+};
+
+document.getElementById("csv-file").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    parseCSV(ev.target.result);
+    setStatus("Archivo CSV cargado: " + file.name);
+  };
+  reader.readAsText(file);
+};
+
+["x-column", "y-column", "chart-type", "orientation", "metric-column"].forEach(id => {
+  document.getElementById(id).onchange = () => {
+    updateKPIs();
+    updateChart();
+  };
+});
+
+document.getElementById("export-btn").onclick = exportChart;
+
+document.getElementById("darkmode-toggle").onclick = () => {
+  darkMode = !darkMode;
+  document.body.classList.toggle("dark", darkMode);
+  setStatus(darkMode ? "Modo oscuro activado" : "Modo claro activado");
+};
+
+document.getElementById("increase-font").onclick = () => {
+  fontSize += 2;
+  document.body.style.fontSize = fontSize + "px";
+  setStatus("Tamaño de letra aumentado");
+};
+document.getElementById("decrease-font").onclick = () => {
+  fontSize = Math.max(12, fontSize - 2);
+  document.body.style.fontSize = fontSize + "px";
+  setStatus("Tamaño de letra disminuido");
+};
+
+document.getElementById("global-filter").oninput = (e) => {
+  globalFilter = e.target.value;
+  renderTable();
+  updateKPIs();
+  updateChart();
+};
+
+document.getElementById("clear-selection").onclick = () => {
+  selectedRowIndexes.clear();
+  renderTable();
+  updateKPIs();
+  updateChart();
+  setStatus("Selección de filas limpiada");
+};
+
+// ===== Ciclo de actualización inicial =====
+function updateAll() {
+  populateSelectors();
+  renderTable();
+  updateKPIs();
+  updateChart();
 }
