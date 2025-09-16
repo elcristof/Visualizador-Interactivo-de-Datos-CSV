@@ -25,8 +25,6 @@
 - Contenedor con scroll (`.table-container`) y borde.
 - Accesible con `tabindex="0"` y `aria-label`.
 
----
-
 ### Gráficas
 - Lienzo: `<canvas id="chart">` dentro de `.chart-wrapper`.
 - Tipos:
@@ -42,13 +40,11 @@
   - `backgroundColor: #3b82f6`
   - `borderColor: #1d4ed8`
 
----
 
 ### Exportar imagen
 - Botón ** Exportar PNG** usa **html2canvas** sobre `.chart-wrapper`.
 - Descarga **`chart.png`** con la visualización actual.
 
----
 
 ### Accesibilidad
 - **`role="status"` + `aria-live="polite"`** para mensajes no intrusivos: `#status`.
@@ -56,13 +52,11 @@
 - **Foco visible** en botones/select/textarea (`outline` ámbar).
 - **Contraste** ajustado en modo oscuro/claro.
 
----
 
 ### Controles de interfaz
 - **A+** / **A-**: ajustan fuente global (`fontSize` → `document.body.style.fontSize`).
 - alterna **modo oscuro** añadiendo/removiendo la clase `.dark` en `<body>`.
 
----
 
 ### API interna (funciones)
 
@@ -89,7 +83,6 @@ Rellena `<select id="x-column">` y `<select id="y-column">` con los `headers`.
 ### `exportChart()`
 Renderiza `.chart-wrapper` a canvas con **html2canvas** y descarga `chart.png`.
 
----
 
 ### Eventos registrados
 - **Parsear**: `#parse-btn.onclick` → `parseCSV(...)`.
